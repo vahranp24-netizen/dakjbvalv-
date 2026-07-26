@@ -27,7 +27,6 @@ this stays consistent with the live dashboard without needing it running.
 import json
 import os
 import sqlite3
-import tempfile
 
 import pandas as pd
 import plotly.graph_objects as go
@@ -35,7 +34,7 @@ import streamlit as st
 
 st.set_page_config(page_title="Smart Building — Final Results", layout="wide", page_icon="🏢")
 
-DEFAULT_DB_PATH = os.path.join(os.path.dirname(__file__), "..", "data", "building.db")
+DEFAULT_DB_PATH = os.path.join(os.path.dirname(__file__), "building.db")
 
 ZONES = ["Core_ZN", "Perimeter_ZN_1", "Perimeter_ZN_2", "Perimeter_ZN_3", "Perimeter_ZN_4"]
 # Matches the real building geometry (core + 4 perimeter zones) and the same
@@ -488,28 +487,10 @@ def tick_to_date_map(pipeline_events: pd.DataFrame, strategy: str) -> dict[int, 
 # --------------------------------------------------------------------------
 inject_css()
 
-# --------------------------------------------------------------------------
-# Sidebar: data source
-# --------------------------------------------------------------------------
-st.sidebar.markdown(
-    '<div style="font-family:\'Space Grotesk\',sans-serif;font-weight:700;font-size:1.1rem;'
-    'background:linear-gradient(90deg,#67e8f9,#a78bfa);-webkit-background-clip:text;'
-    'background-clip:text;color:transparent;margin-bottom:0.3rem;">🏢 Data source</div>',
-    unsafe_allow_html=True,
-)
-uploaded = st.sidebar.file_uploader("Upload a building.db (optional)", type=["db"])
-if uploaded is not None:
-    tmp_path = os.path.join(tempfile.gettempdir(), "uploaded_building.db")
-    with open(tmp_path, "wb") as f:
-        f.write(uploaded.getbuffer())
-    db_path = tmp_path
-    st.sidebar.success(f"Using uploaded file ({uploaded.size / 1e6:.1f} MB)")
-else:
-    db_path = DEFAULT_DB_PATH
-    if not os.path.exists(db_path):
-        st.sidebar.error(f"No database found at {db_path} — upload a building.db file above.")
-        st.stop()
-    st.sidebar.caption(f"Reading `{os.path.relpath(db_path, os.path.dirname(__file__))}`")
+db_path = DEFAULT_DB_PATH
+if not os.path.exists(db_path):
+    st.error(f"No database found at {db_path}.")
+    st.stop()
 
 tables = load_tables(db_path, os.path.getmtime(db_path))
 run_ticks, decisions_raw, resilience, pipeline_events = (
